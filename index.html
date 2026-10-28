@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SBI Banking Management System</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f6ff;color:#12305a}
+header{background:linear-gradient(120deg,#062b65,#0879d5);color:white;padding:25px}
+header h1{margin:0;font-size:30px}
+header p{margin-bottom:0;color:#d8eaff}
+nav{background:#fff;padding:14px;display:flex;gap:10px;flex-wrap:wrap;box-shadow:0 3px 12px #0001}
+button{border:0;padding:11px 16px;border-radius:8px;background:#0866c6;color:white;cursor:pointer;font-weight:bold}
+nav button{background:#e9f3ff;color:#0754a4}
+nav button:hover,button:hover{opacity:.85}
+main{max-width:1100px;margin:25px auto;padding:0 15px}
+.hero{background:linear-gradient(120deg,#0752a4,#12a5d4);color:white;border-radius:18px;padding:28px;margin-bottom:22px;box-shadow:0 8px 22px #0752a433}
+.hero h2{margin-top:0}
+.balance{font-size:36px;font-weight:bold;margin:15px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px;margin-bottom:22px}
+.card,.panel{background:white;border-radius:14px;padding:20px;box-shadow:0 4px 18px #12305a0c;border:1px solid #e0eafa}
+.card small{color:#647895}
+.card h2{font-size:25px;color:#075db7;overflow-wrap:anywhere}
+.panel{margin-bottom:20px}
+h3{margin-top:0}
+input{width:100%;padding:12px;margin:7px 0 14px;border:1px solid #cddcf0;border-radius:8px}
+label{font-size:13px;font-weight:bold}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #e5edf8;font-size:13px}
+th{background:#edf5ff}
+.tablebox{overflow-x:auto}
+.message{font-weight:bold;font-size:13px;margin-top:12px}
+footer{text-align:center;color:#647895;padding:22px;font-size:12px}
+@media(max-width:500px){header h1{font-size:24px}.balance{font-size:29px}nav button{flex:1}}
+</style>
+</head>
+<body>
+<header>
+<h1>◉ SBI Banking System</h1>
+<p>Smart Banking Management Dashboard</p>
+</header>
+
+<nav>
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('create')">Create Account</button>
+<button onclick="show('accounts')">Accounts</button>
+<button onclick="show('transactions')">Transactions</button>
+</nav>
+
+<main>
+<section id="dashboard">
+<div class="hero">
+<h2>Welcome to SBI Banking Dashboard 👋</h2>
+<p>Total Balance of All Customers</p>
+<div class="balance" id="total">₹0.00</div>
+<p>Secure • Simple • Smart Banking Demo</p>
+</div>
+<div class="cards">
+<div class="card"><small>Total Accounts</small><h2 id="count">0</h2></div>
+<div class="card"><small>Today's Deposits</small><h2 id="deposits">₹0</h2></div>
+<div class="card"><small>Today's Withdrawals</small><h2 id="withdrawals">₹0</h2></div>
+</div>
+<div class="panel">
+<h3>Quick Banking Services</h3>
+<button onclick="deposit()">＋ Deposit</button>
+<button onclick="withdraw()">－ Withdraw</button>
+<button onclick="checkBalance()">◎ Check Balance</button>
+<button onclick="passbook()">▤ Passbook</button>
+<p id="message" class="message"></p>
+</div>
+</section>
+
+<section id="create" class="hidden">
+<div class="panel">
+<h3>Open New Account</h3>
+<form id="accountForm">
+<label>Customer Name</label>
+<input id="name" placeholder="Enter full name" required>
+<label>Phone Number</label>
+<input id="phone" placeholder="Enter phone number" required>
+<label>Opening Balance (₹)</label>
+<input id="opening" type="number" min="0" value="1000" required>
+<button type="submit">Create Account</button>
+</form>
+<p id="formMessage" class="message"></p>
+</div>
+</section>
+
+<section id="accounts" class="hidden">
+<div class="panel">
+<h3>Customer Accounts</h3>
+<input id="search" placeholder="Search name or account number" oninput="render()">
+<div class="tablebox"><table>
+<thead><tr><th>Account No.</th><th>Name</th><th>Phone</th><th>Balance</th></tr></thead>
+<tbody id="accountRows"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="transactions" class="hidden">
+<div class="panel">
+<h3>Transaction History</h3>
+<div class="tablebox"><table>
+<thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Balance</th></tr></thead>
+<tbody id="transactionRows"></tbody>
+</table></div>
+</div>
+</section>
+</main>
+
+<footer>SBI Banking Management System | Student Mini Project Demo</footer>
+
+<script>
+let accounts=[];
+try{accounts=JSON.parse(localStorage.getItem("sbiDemoAccounts")||"[]");if(!Array.isArray(accounts))accounts=[]}catch(e){accounts=[]}
+
+function save(){
+try{localStorage.setItem("sbiDemoAccounts",JSON.stringify(accounts))}
+catch(e){alert("Unable to save data in this browser.")}
+}
+function money(n){
+return "₹"+Number(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function today(){return new Date().toLocaleDateString("en-CA")}
+function safe(s){
+return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function show(id){
+document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+render();
+}
+function addTransaction(a,type,amount){
+a.transactions.push({date:today(),type,amount,balance:a.balance});
+}
+document.getElementById("accountForm").addEventListener("submit",function(e){
+e.preventDefault();
+let name=document.getElementById("name").value.trim();
+let phone=document.getElementById("phone").value.trim();
+let opening=Number(document.getElementById("opening").value);
+if(!name||!phone||!Number.isFinite(opening)||opening<0){
+document.getElementById("formMessage").textContent="Please enter valid details.";
+return;
+}
+let number=Math.max(100000,...accounts.map(a=>a.number))+1;
+let a={number,name,phone,balance:opening,transactions:[]};
+a.transactions.push({date:today(),type:"Account Created",amount:opening,balance:opening});
+accounts.push(a);
+save();this.reset();
+document.getElementById("opening").value=1000;
+document.getElementById("formMessage").textContent="Account created! Account number: "+number;
+render();
+});
+function chooseAccount(){
+if(!accounts.length){alert("First create an account.");return null;}
+let value=prompt("Enter account number:\n"+accounts.map(a=>a.number+" - "+a.name).join("\n"));
+if(value===null)return null;
+let a=accounts.find(x=>String(x.number)===value.trim());
+if(!a)alert("Account not found.");
+return a||null;
+}
+function deposit(){
+let a=chooseAccount();if(!a)return;
+let amount=Number(prompt("Enter deposit amount (₹):"));
+if(!Number.isFinite(amount)||amount<=0){alert("Enter a valid amount.");return;}
+a.balance+=amount;addTransaction(a,"Deposit",amount);save();render();
+document.getElementById("message").textContent="Deposit successful! New balance: "+money(a.balance);
+}
+function withdraw(){
+let a=chooseAccount();if(!a)return;
+let amount=Number(prompt("Enter withdrawal amount (₹):"));
+if(!Number.isFinite(amount)||amount<=0){alert("Enter a valid amount.");return;}
+if(amount>a.balance){alert("Insufficient balance.");return;}
+a.balance-=amount;addTransaction(a,"Withdrawal",amount);save();render();
+document.getElementById("message").textContent="Withdrawal successful! New balance: "+money(a.balance);
+}
+function checkBalance(){
+let a=chooseAccount();if(a)document.getElementById("message").textContent=a.name+" | Balance: "+money(a.balance);
+}
+function passbook(){
+let a=chooseAccount();if(!a)return;
+alert("PASSBOOK\nAccount: "+a.number+"\n"+a.transactions.map(t=>t.date+" | "+t.type+" | "+money(t.amount)+" | Balance "+money(t.balance)).join("\n"));
+}
+function render(){
+document.getElementById("count").textContent=accounts.length;
+document.getElementById("total").textContent=money(accounts.reduce((s,a)=>s+a.balance,0));
+let tx=accounts.flatMap(a=>a.transactions.map(t=>({...t,number:a.number})));
+let todayTx=tx.filter(t=>t.date===today());
+document.getElementById("deposits").textContent=money(todayTx.filter(t=>t.type==="Deposit").reduce((s,t)=>s+t.amount,0));
+document.getElementById("withdrawals").textContent=money(todayTx.filter(t=>t.type==="Withdrawal").reduce((s,t)=>s+t.amount,0));
+let q=(document.getElementById("search")?.value||"").toLowerCase();
+let filtered=accounts.filter(a=>a.name.toLowerCase().includes(q)||String(a.number).includes(q));
+document.getElementById("accountRows").innerHTML=filtered.length?filtered.map(a=>`<tr><td>${a.number}</td><td>${safe(a.name)}</td><td>${safe(a.phone)}</td><td>${money(a.balance)}</td></tr>`).join(""):'<tr><td colspan="4">No accounts found</td></tr>';
+document.getElementById("transactionRows").innerHTML=tx.length?tx.slice().reverse().map(t=>`<tr><td>${safe(t.date)}</td><td>${t.number}</td><td>${safe(t.type)}</td><td>${money(t.amount)}</td><td>${money(t.balance)}</td></tr>`).join(""):'<tr><td colspan="5">No transactions yet</td></tr>';
+}
+render();
+</script>
+</body>
+</html>
+'''
+path = Path("/mnt/data/SBI_Banking_Management_Copy.html")
+path.write_text(html, encoding="utf-8")
+print("File created:", path)
+print("Full HTML source is included below for copy-paste.")
+print(html)
